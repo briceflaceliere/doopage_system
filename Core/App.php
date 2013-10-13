@@ -3,6 +3,7 @@ namespace DoopageFramework\Core;
 
 require_once __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/Lib/AutoloadCore.php';
+require_once __DIR__.'/Lib/AutoloadApp.php';
 
 
 class ServiceNotFoundException extends \InvalidArgumentException {}
@@ -12,7 +13,7 @@ class ServiceNotFoundException extends \InvalidArgumentException {}
  *
  * @author Flaceliere Brice <contact@b-flaceliere.fr>
  */
- class App {
+class App {
     
     /**
      * Instance de App pour le Signeton
@@ -31,13 +32,26 @@ class ServiceNotFoundException extends \InvalidArgumentException {}
      * @var string[]  
      */
     protected $appDirectory = array();
+    
+    /**
+     * Active le cache pour la surcharge de class
+     * 
+     * @var bool 
+     */
+    protected $overrideCache = true;
+    
+    protected $autoloadApp;
 
     private function __construct(){
-        $this->addAppDirectory(__NAMESPACE__, basename(__FILE__));
+        if(ENV == 'DEV') $this->setOverrideCache(false);
         
-        $autoload = new \DoopageFramework\Core\Lib_AutoloadCore($this);
+        $this->addAppDirectory(__NAMESPACE__, dirname(__FILE__));
         
-        spl_autoload_register(array($autoload, 'load'), true, true);
+        $autoloadCore = new \DoopageFramework\Core\Lib_AutoloadCore($this);
+        $this->autoloadApp = new \DoopageFramework\Core\Lib_AutoloadApp($this);
+        
+        spl_autoload_register(array($autoloadCore, 'load'), true, true);
+        spl_autoload_register(array($this->autoloadApp, 'load'), true, true);
     }
     
     /**
@@ -58,7 +72,7 @@ class ServiceNotFoundException extends \InvalidArgumentException {}
      * @return \DoopageFramework\Core\App
      */
     final public function addAppDirectory($namespace, $directory) {
-        array_unshift($this->appDirectory, array($namespace, realpath($directory)));
+        array_unshift($this->appDirectory, array('namespace' => $namespace, 'folder' => realpath($directory)));
         
         return $this;
     }
@@ -68,19 +82,8 @@ class ServiceNotFoundException extends \InvalidArgumentException {}
      * 
      * @return \DoopageFramework\Core\App
      */
-    private function _coreInit() {
-        
-        return $this;
-    }
-
-
-    /**
-     * Initialize l'application
-     * 
-     * @return \DoopageFramework\Core\App
-     */
-    public function init()
-    {
+    private function init() {
+        echo $this->autoloadApp->init();
         return $this;
     }
     
@@ -91,10 +94,7 @@ class ServiceNotFoundException extends \InvalidArgumentException {}
      */
     final public function exec()
     {
-        $this->_coreInit();
         $this->init();
-        
-        var_dump('ok');
         
         return $this;
     }
@@ -152,6 +152,34 @@ class ServiceNotFoundException extends \InvalidArgumentException {}
     public function getAppDirectory() {
         return $this->appDirectory;
     }
+    
+    /**
+     * Retourne le dossier corespondnat au namespace
+     * 
+     * @param string $namespace
+     * @return string 
+     */
+    public function getAppFolderByNamespace($namespace) {
+        foreach($this->getAppDirectory() as $v){
+            if($v['namespace'] == $namespace) return $v['folder'];
+        }
+        return "";
+    }
+    
+    /**
+     * Retourne le dossier de cache de l'application courante
+     * 
+     * @return string 
+     */
+    public function getAppCacheDir() {
+        return $this->appDirectory[0]['folder'].DIRECTORY_SEPARATOR."Cache";
+    }
+    
+    
+    public function getOverrideCache() { return $this->overrideCache; }
+    public function setOverrideCache($overrideCache) { $this->overrideCache = $overrideCache; return $this; }
+
+
 }
 
 ?>

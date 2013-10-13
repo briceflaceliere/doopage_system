@@ -26,6 +26,7 @@ class Lib_AutoloadCore {
      * @param string $className Class à charger
      */
     public function load($className){
+        
         $className = ltrim($className, '\\');
         $fileName  = '';
         $namespace = '';
@@ -34,9 +35,11 @@ class Lib_AutoloadCore {
             $className = substr($className, $lastNsPos + 1);
         }
         
-        if(isset($this->app->getAppDirectory()['\\'.$namespace]))
+        
+        $appFolder = $this->app->getAppFolderByNamespace($namespace);
+        if(!empty($appFolder))
         {
-            $fileName = $this->app->getAppDirectory()['\\'.$namespace].DIRECTORY_SEPARATOR;
+            $fileName = $appFolder.DIRECTORY_SEPARATOR;
         }
         
         $fileName .= str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php';
